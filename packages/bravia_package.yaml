@@ -1,0 +1,169 @@
+automation:
+  - id: 'bravia.automations'
+    alias: Sony Bravia TV Automations
+    initial_state: 'off'
+    trigger:
+      - platform: state
+        entity_id: sensor.sony_bravia_tv_power_status
+        to: 'standby'
+      - platform: state
+        entity_id: sensor.sony_bravia_tv_power_status
+        to: 'offline'
+    action:
+      # Turn off automations
+      - service: automation.turn_off
+        data:
+          entity_id: automation.sony_bravia_tv_input_select_picture_mode_set
+      - service: automation.turn_off
+        data:
+          entity_id: automation.sony_bravia_tv_input_select_current_picture_mode_populator
+      - service: input_select.set_options
+        data_template:
+          entity_id: input_select.sony_bravia_tv_picture_modes
+          options: [ 'None' ]
+  - id: 'bravia.picturemode.populator'
+    alias: Sony Bravia TV Input Select Picture Modes Populator
+    initial_state: 'on'
+    trigger:
+      - platform: homeassistant
+        event: start
+      - platform: state
+        entity_id: sensor.sony_bravia_tv_power_status
+        to: 'active'
+    action:
+      # Turn off other automations
+      - service: automation.turn_off
+        data:
+          entity_id: automation.sony_bravia_tv_input_select_picture_mode_set
+      - service: automation.turn_off
+        data:
+          entity_id: automation.sony_bravia_tv_input_select_current_picture_mode_populator
+      # Fill input_select.sony_bravia_tv_picture_modes with all available picture modes
+      - service: rest_command.sony_bravia_tv_input_select_set_options
+        data:
+          url: !secret internal_api_url
+          token: !secret internal_api_token
+      - service: input_select.select_option
+        data_template:
+          entity_id: input_select.sony_bravia_tv_picture_modes
+          option: '{{ states("sensor.sony_bravia_tv_current_picture_mode") }}'
+      # Turn other automations on again
+      - service: automation.turn_on
+        data:
+          entity_id: automation.sony_bravia_tv_input_select_picture_mode_set
+      - service: automation.turn_on
+        data:
+          entity_id: automation.sony_bravia_tv_input_select_current_picture_mode_populator
+      - service: automation.turn_on
+        data:
+          entity_id: automation.sony_bravia_tv_automations
+  - id: 'bravia.picturemode.set'
+    alias: Sony Bravia TV Input Select Picture Mode Set
+    initial_state: 'off'
+    trigger:
+      - platform: state
+        entity_id: input_select.sony_bravia_tv_picture_modes
+    action:
+      - service: rest_command.sony_bravia_tv_set_picture_mode_setting
+        data_template:
+          host: !secret bravia_host
+          psk: !secret bravia_psk
+          picturemode: '{{ states("input_select.sony_bravia_tv_picture_modes") }}'
+  - id: 'bravia.input.select'
+    alias: Sony Bravia TV Input Select Current Picture Mode Populator
+    initial_state: 'off'
+    trigger:
+      - platform: state
+        entity_id: sensor.sony_bravia_tv_current_picture_mode
+    action:
+      - service: automation.turn_off
+        data:
+          entity_id: automation.sony_bravia_tv_input_select_picture_mode_set
+      - service: input_select.select_option
+        data_template:
+          entity_id: input_select.sony_bravia_tv_picture_modes
+          option: '{{ states("sensor.sony_bravia_tv_current_picture_mode") }}'
+      - service: automation.turn_on
+        data:
+          entity_id: automation.sony_bravia_tv_input_select_picture_mode_set
+
+sensor:
+######### Sony Bravia KDL-55W805B ###########
+############# Current Picture Mode Sensor ##########
+  - platform: rest
+    name: Sony Bravia TV Power Status
+    resource_template: !secret bravia_systemurl
+    headers:
+      x-auth-psk: !secret bravia_psk
+    method: POST
+    payload: '{"method":"getPowerStatus","params":[""],"id":1,"version":"1.0"}'
+    value_template:  >
+      {%- if value_json is defined -%}
+        {{- value_json.result[0].status -}}
+      {%- else -%}
+        offline
+      {%- endif -%}
+    scan_interval: 5
+############# Current Picture Mode Sensor ##########
+  - platform: rest
+    name: Sony Bravia TV Current Picture Mode
+    resource_template: !secret bravia_videoscreenurl
+    headers:
+      x-auth-psk: !secret bravia_psk
+    method: POST
+    payload: '{"method":"getPictureQualitySettings","params":[{"target":"pictureMode"}],"id":52,"version":"1.0"}'
+    value_template:  >
+      {%- if value_json is defined -%}
+        {{- value_json.result[0][0].currentValue -}}
+      {%- else -%}
+        auto
+      {%- endif -%}
+    scan_interval: 1
+############# All Picture Modes Sensor #############
+  - platform: rest
+    name: Sony Bravia TV Picture Mode Setting
+    resource_template: !secret bravia_videoscreenurl
+    headers:
+      x-auth-psk: !secret bravia_psk
+    method: POST
+    payload: '{"method":"getPictureQualitySettings","params":[{"target":"pictureMode"}],"id":52,"version":"1.0"}'
+    json_attributes_path: "$.result.[0][0]"
+    json_attributes:
+      - candidate
+      - currentValue
+    value_template:  'OK'
+
+input_select:
+  sony_bravia_tv_picture_modes:
+    name: TV Picture Mode
+    icon: mdi:image-filter-hdr
+    options: [ None ]
+
+rest_command:
+######### Sony Bravia KDL-55W805B ###########
+############ Set Picture Mode Command ##############
+  sony_bravia_tv_set_picture_mode_setting:
+    url: 'http://{{ host }}/sony/video'
+    method: POST
+    headers:
+      x-auth-psk: '{{ psk }}'
+      accept: 'application/json'
+    payload: '{"method":"setPictureQualitySettings","params":[{"settings":[{"target":"pictureMode","value":"{{ picturemode }}"}]}],"id":40,"version": "1.0" }'
+    content_type:  'application/json; charset=utf-8'
+############ Fill input command #############
+  sony_bravia_tv_input_select_set_options:
+    url: '{{ url }}/services/input_select/set_options'
+    method: POST
+    headers:
+      authorization: 'Bearer {{ token }}'
+      content-type: 'application/json'
+    payload: >-
+      {
+        "entity_id": "input_select.sony_bravia_tv_picture_modes",
+        "options": [
+      {%- for item in state_attr("sensor.sony_bravia_tv_picture_mode_setting", "candidate")|map(attribute="value")|list -%}
+        "{{- item -}}"{% if not loop.last %}, {% endif %}
+      {%- endfor -%}
+        ]
+      }
+

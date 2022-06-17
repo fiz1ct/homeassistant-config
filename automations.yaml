@@ -1,0 +1,88 @@
+- id: '1615651120365'
+  alias: Fireplace Switch
+  description: Turn on/off smart bulbs when fireplace light switch is enabled
+  trigger:
+  - platform: device
+    type: turned_on
+    device_id: 49c935ea11deb0e0c136244400dda322
+    entity_id: switch.fireplace_switch
+    domain: switch
+  condition: []
+  action:
+  - type: turn_on
+    device_id: 822428cf8bfb2e3ae88ee8a810443eab
+    entity_id: light.fireplace_color_downlight_1
+    domain: light
+    brightness_pct: 75
+  - type: turn_on
+    device_id: 89f04ef047e3c71fcef6fa267868949d
+    entity_id: light.fireplace_color_downlight_2
+    domain: light
+    brightness_pct: 75
+  mode: single
+- id: '1644517095284'
+  alias: Outside Lights
+  description: Turn on/off outside lights based on sun below/above horizon
+  trigger:
+  - platform: sun
+    event: sunrise
+    id: sunrise_light_off
+    offset: -00:30:00
+  - platform: sun
+    event: sunset
+    offset: -00:30:00
+    id: sunset_light_on
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: sunset_light_on
+      sequence:
+      - type: turn_on
+        device_id: 97e897802093ebd1d2ef4ee4934d016d
+        entity_id: switch.outside_switch
+        domain: switch
+    - conditions:
+      - condition: trigger
+        id: sunrise_light_off
+      sequence:
+      - type: turn_off
+        device_id: 97e897802093ebd1d2ef4ee4934d016d
+        entity_id: switch.outside_switch
+        domain: switch
+    default: []
+  mode: single
+- id: '1644521869595'
+  alias: TV Backlight
+  description: Turn on/off TV backlight based on TV state
+  trigger:
+  - platform: state
+    entity_id: sensor.sony_bravia_tv_power_status
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: sensor.sony_bravia_tv_power_status
+        state: active
+      sequence:
+      - service: light.turn_on
+        data:
+          brightness_pct: 100
+          kelvin: 3000
+        target:
+          entity_id: light.hue_lightstrip_plus_1
+    - conditions:
+      - condition: not
+        conditions:
+        - condition: state
+          entity_id: sensor.sony_bravia_tv_power_status
+          state: active
+      sequence:
+      - type: turn_off
+        device_id: dd4e26c2690c7fb28c6347783271ef82
+        entity_id: light.hue_lightstrip_plus_1
+        domain: light
+    default: []
+  mode: single

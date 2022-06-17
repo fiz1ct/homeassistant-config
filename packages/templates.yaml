@@ -1,0 +1,57 @@
+automation:
+  - id: '1644689563987'
+    alias: TV Surround Sound/Picture Mode
+    description: Set receiver to 5.1 surround and TV to game mode for select ATV apps
+    variables:
+      rc:
+        apps:
+          - 'com.s0und.s0undtv'
+          - 'com.swordfish.lemuroid'
+        default: 'straight'
+        trigger: '5ch_stereo'
+      tv:
+        apps:
+          - 'com.s0und.s0undtv'
+          - 'com.swordfish.lemuroid'
+          - 'com.nvidia.tegrazone3'
+        sensor: 'sensor.sony_bravia_tv_current_picture_mode'
+        default: 'custom'
+        trigger: 'game'
+    trigger:
+    - platform: state
+      entity_id: media_player.living_shield
+      attribute: app_name
+    action:
+    - condition: or
+      conditions:
+      - condition: template
+        value_template: "{{
+          state_attr('media_player.living_shield', 'app_name') in tv.apps and
+          not is_state(tv.sensor, tv.trigger)
+        }}"
+      - condition: template
+        value_template: "{{
+          state_attr('media_player.living_shield', 'app_name') not in tv.apps and
+          not is_state(tv.sensor, tv.default)
+        }}"
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.sony_bravia_tv_picture_modes
+      data_template:
+        option: >
+          {% if state_attr('media_player.living_shield', 'app_name') in tv.apps %}
+            {{ tv.trigger }}
+          {% else %}
+            {{ tv.default }}
+          {% endif %}
+    - service: media_player.select_sound_mode
+      target:
+        entity_id: media_player.rx_v481_dc8155 
+      data_template:
+        sound_mode: >
+          {% if state_attr('media_player.living_shield', 'app_name') in rc.apps %}
+            {{ rc.trigger }}
+          {% else %}
+            {{ rc.default }}
+          {% endif %}
+    mode: single
