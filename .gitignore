@@ -1,0 +1,7 @@
+home-assistant*
+backups/
+.storage/
+.cloud/
+scripts/
+*.sqlite
+tts/

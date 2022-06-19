@@ -7,7 +7,6 @@
     device_id: 49c935ea11deb0e0c136244400dda322
     entity_id: switch.fireplace_switch
     domain: switch
-  condition: []
   action:
   - type: turn_on
     device_id: 822428cf8bfb2e3ae88ee8a810443eab
@@ -32,7 +31,6 @@
     event: sunset
     offset: -00:30:00
     id: sunset_light_on
-  condition: []
   action:
   - choose:
     - conditions:
@@ -53,13 +51,37 @@
         domain: switch
     default: []
   mode: single
+- id: '1644521869600'
+  alias: TV Power Status Update
+  description: Update TV power status
+  trigger:
+  - platform: state
+    entity_id: media_player.living_tv
+    from:
+  action:
+  - service: homeassistant.update_entity
+    entity_id: sensor.sony_bravia_tv_power_status
+  mode: single
+- id: '1644521869605'
+  alias: TV Receiver Source
+  description: Force hdmi1
+  trigger:
+  - platform: state
+    entity_id: media_player.rx_v481_dc8155
+    to: "playing"
+  action:
+  - service: media_player.select_source
+    target:
+      entity_id: media_player.rx_v481_dc8155 
+    data:
+      source: 'hdmi1'
+  mode: single
 - id: '1644521869595'
   alias: TV Backlight
-  description: Turn on/off TV backlight based on TV state
+  description: Turn on/off TV backlight
   trigger:
   - platform: state
     entity_id: sensor.sony_bravia_tv_power_status
-  condition: []
   action:
   - choose:
     - conditions:
@@ -70,7 +92,7 @@
       - service: light.turn_on
         data:
           brightness_pct: 100
-          kelvin: 3000
+          rgb_color: [255, 180, 107]
         target:
           entity_id: light.hue_lightstrip_plus_1
     - conditions:

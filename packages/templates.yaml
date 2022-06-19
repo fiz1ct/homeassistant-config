@@ -4,24 +4,25 @@ automation:
     description: Set receiver to 5.1 surround and TV to game mode for select ATV apps
     variables:
       rc:
-        apps:
-          - 'com.s0und.s0undtv'
-          - 'com.swordfish.lemuroid'
+        apps: ['com.s0und.s0undtv', 'com.swordfish.lemuroid']
         default: 'straight'
         trigger: '5ch_stereo'
       tv:
-        apps:
-          - 'com.s0und.s0undtv'
-          - 'com.swordfish.lemuroid'
-          - 'com.nvidia.tegrazone3'
+        apps: ['com.s0und.s0undtv', 'com.swordfish.lemuroid', 'com.nvidia.tegrazone3']
         sensor: 'sensor.sony_bravia_tv_current_picture_mode'
         default: 'custom'
         trigger: 'game'
+      bl:
+        default: [255, 180, 107]
+        trigger: [42, 235, 74]
     trigger:
     - platform: state
       entity_id: media_player.living_shield
       attribute: app_name
+    condition: "{{ not is_state('media_player.living_shield', 'off') }}"
     action:
+    - service: homeassistant.update_entity
+      entity_id: sensor.sony_bravia_tv_current_picture_mode
     - condition: or
       conditions:
       - condition: template
@@ -34,11 +35,11 @@ automation:
           state_attr('media_player.living_shield', 'app_name') not in tv.apps and
           not is_state(tv.sensor, tv.default)
         }}"
-    - service: input_select.select_option
-      target:
-        entity_id: input_select.sony_bravia_tv_picture_modes
+    - service: rest_command.sony_bravia_tv_set_picture_quality_settings
       data_template:
-        option: >
+        host: !secret bravia_host
+        psk: !secret bravia_psk
+        picturemode: >
           {% if state_attr('media_player.living_shield', 'app_name') in tv.apps %}
             {{ tv.trigger }}
           {% else %}
@@ -54,4 +55,16 @@ automation:
           {% else %}
             {{ rc.default }}
           {% endif %}
+    - service: light.turn_on
+      target:
+        entity_id: light.hue_lightstrip_plus_1
+      data_template:
+        rgb_color: >
+          {% if state_attr('media_player.living_shield', 'app_name') in ['com.swordfish.lemuroid'] %}
+            {{ bl.trigger }}
+          {% else %}
+            {{ bl.default }}
+          {% endif %}
+    - service: homeassistant.update_entity
+      entity_id: sensor.sony_bravia_tv_current_picture_mode
     mode: single
