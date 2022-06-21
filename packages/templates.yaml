@@ -13,12 +13,15 @@ automation:
         default: 'custom'
         trigger: 'game'
       bl:
+        apps: ['com.swordfish.lemuroid']
         default: [255, 180, 107]
         trigger: [42, 235, 74]
     trigger:
     - platform: state
       entity_id: media_player.living_shield
       attribute: app_name
+      variables:
+        curr_app: "{{ state_attr('media_player.living_shield', 'app_name') }}"
     condition: "{{ not is_state('media_player.living_shield', 'off') }}"
     action:
     - service: homeassistant.update_entity
@@ -26,21 +29,15 @@ automation:
     - condition: or
       conditions:
       - condition: template
-        value_template: "{{
-          state_attr('media_player.living_shield', 'app_name') in tv.apps and
-          not is_state(tv.sensor, tv.trigger)
-        }}"
+        value_template: "{{ curr_app in tv.apps and not is_state(tv.sensor, tv.trigger) }}"
       - condition: template
-        value_template: "{{
-          state_attr('media_player.living_shield', 'app_name') not in tv.apps and
-          not is_state(tv.sensor, tv.default)
-        }}"
+        value_template: "{{ curr_app not in tv.apps and not is_state(tv.sensor, tv.default) }}"
     - service: rest_command.sony_bravia_tv_set_picture_quality_settings
       data_template:
         host: !secret bravia_host
         psk: !secret bravia_psk
         picturemode: >
-          {% if state_attr('media_player.living_shield', 'app_name') in tv.apps %}
+          {% if curr_app in tv.apps %}
             {{ tv.trigger }}
           {% else %}
             {{ tv.default }}
@@ -50,7 +47,7 @@ automation:
         entity_id: media_player.rx_v481_dc8155 
       data_template:
         sound_mode: >
-          {% if state_attr('media_player.living_shield', 'app_name') in rc.apps %}
+          {% if curr_app in rc.apps %}
             {{ rc.trigger }}
           {% else %}
             {{ rc.default }}
@@ -60,7 +57,7 @@ automation:
         entity_id: light.hue_lightstrip_plus_1
       data_template:
         rgb_color: >
-          {% if state_attr('media_player.living_shield', 'app_name') in ['com.swordfish.lemuroid'] %}
+          {% if curr_app in bl.apps %}
             {{ bl.trigger }}
           {% else %}
             {{ bl.default }}
