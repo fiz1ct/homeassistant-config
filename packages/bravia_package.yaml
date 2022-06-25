@@ -47,11 +47,11 @@ sensor:
 rest_command:
 ######### Sony Bravia KDL-55W805B ###########
 ############ Set Picture Mode Command ##############
-  sony_bravia_tv_set_picture_quality_settings:
-    url: 'http://{{ host }}/sony/video'
+  bravia_picture_mode:
+    url: !secret bravia_videoscreenurl
     method: POST
     headers:
-      x-auth-psk: '{{ psk }}'
+      x-auth-psk: !secret bravia_psk
       accept: 'application/json'
     payload: '{"method":"setPictureQualitySettings","params":[{"settings":[{"target":"pictureMode","value":"{{ picturemode }}"}]}],"id":40,"version": "1.0" }'
     content_type:  'application/json; charset=utf-8'

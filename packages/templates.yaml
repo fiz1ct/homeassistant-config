@@ -32,10 +32,8 @@ automation:
         value_template: "{{ curr_app in tv.apps and not is_state(tv.sensor, tv.trigger) }}"
       - condition: template
         value_template: "{{ curr_app not in tv.apps and not is_state(tv.sensor, tv.default) }}"
-    - service: rest_command.sony_bravia_tv_set_picture_quality_settings
+    - service: rest_command.bravia_picture_mode
       data_template:
-        host: !secret bravia_host
-        psk: !secret bravia_psk
         picturemode: >
           {% if curr_app in tv.apps %}
             {{ tv.trigger }}

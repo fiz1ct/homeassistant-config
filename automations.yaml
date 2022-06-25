@@ -57,11 +57,12 @@
   trigger:
   - platform: state
     entity_id: media_player.living_tv
-    from:
+    #from: "off"
+    #to: "off"
   action:
   - service: homeassistant.update_entity
     entity_id: sensor.sony_bravia_tv_power_status
-  mode: single
+  mode: queued
 - id: '1644521869605'
   alias: TV Receiver Source
   description: Force hdmi1
